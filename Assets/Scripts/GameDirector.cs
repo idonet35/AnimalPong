@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
 public class GameDirector : MonoBehaviour
@@ -96,6 +95,9 @@ public class GameDirector : MonoBehaviour
     [SerializeField]
     private AudioClip _padSE;
 
+    [SerializeField]
+    private GameObject _animParent;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -120,9 +122,10 @@ public class GameDirector : MonoBehaviour
             GameObject next = GameObject.Find("NextDirector");
             NextController nextController = next.GetComponent<NextController>();
 
-            // ネクストを取得
-            _dropAnim = Instantiate(nextController.GetNextAnim());
+            // ネクストを取得してドロップアニムを生成
+            _dropAnim = Instantiate(nextController.GetNextAnim(), _animParent.transform);
             _dropAnim.transform.position = new Vector3(0, _dropY, 0);
+            _dropAnim.transform.Rotate(0, 0, Random.Range(0, 360));
             _dropAnim.GetComponent<Rigidbody2D>().simulated = false;
             _dropAnim.name = $"dropAnim_{_dropCnt}";
             _dropCnt++;
@@ -225,7 +228,7 @@ public class GameDirector : MonoBehaviour
 
             // 進化後があれば合成アニムを生成
             if(GameObject.Find("AnimManager").GetComponent<AnimManager>().TryMakeConposedAnim(source, out composedPref)){
-                GameObject composedAnim = Instantiate(composedPref);
+                GameObject composedAnim = Instantiate(composedPref, _animParent.transform);
                 composedAnim.transform.position = (source.transform.position + target.transform.position) / 2;
                 composedAnim.GetComponent<Rigidbody2D>().simulated = true;
                 composedAnim.name = $"dropAnim_{_dropCnt}";
@@ -242,7 +245,7 @@ public class GameDirector : MonoBehaviour
             GameObject.Find("ScoreValue").GetComponent<TextMeshProUGUI>().SetText(score.ToString());
 
             // エフェクトを表示
-            GameObject padPartical = Instantiate(_padParticle);
+            GameObject padPartical = Instantiate(_padParticle, _animParent.transform);
             padPartical.transform.position = (source.transform.position + target.transform.position) / 2;
 
             // 効果音を鳴らす
