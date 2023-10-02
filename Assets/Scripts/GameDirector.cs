@@ -1,53 +1,110 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class GameDirector : MonoBehaviour
 {
-    private int _score;
-
-    private int _nextAnim;
-
-    private int _dropCnt;
-
-    // 現在のシーン状況
-    public SceneSteps sceneSteps;
-
-    // シーン状況
+    /// <summary>
+    /// シーンステップ定義
+    /// </summary>
     public enum SceneSteps : int{
+        /// <summary>
+        /// 最初
+        /// </summary>
         Start = 0,
+        /// <summary>
+        /// ネクストを取り出し、再生成
+        /// </summary>
         NextSwap = 1,
+        /// <summary>
+        /// ネクスト生成エフェクト待ち
+        /// </summary>
         Ready = 2,
+        /// <summary>
+        /// 落下操作
+        /// </summary>
         Control = 3,
+        /// <summary>
+        /// ゲームオーバー
+        /// </summary>
         GameOver = 4
     }
 
     /// <summary>
-    /// ドロップアニム
+    /// シーンステップ
+    /// </summary>
+    public SceneSteps sceneSteps;
+
+    /// <summary>
+    /// スコア
+    /// </summary>
+    public int score;
+
+    /// <summary>
+    /// ドロップアニム操作オブジェクト
     /// </summary>
     private GameObject _dropAnim;
+
+    /// <summary>
+    /// ドロップアニムの名前付け用カウント変数
+    /// </summary>
+    private int _dropCnt;
 
     /// <summary>
     /// 落下位置表示キャスト
     /// </summary>
     private GameObject _rayCast;
 
-    [SerializeField]
+    /// <summary>
+    /// 落下したアニムのリスト
+    /// </summary>
     private List<GameObject> _anims;
 
+    /// <summary>
+    /// タップしたかどうか
+    /// </summary>
     private bool _isPressed;
 
-    [SerializeField]
+    /// <summary>
+    /// ドロップする高さ
+    /// </summary>
     private float _dropY = 3f;
+
+    /// <summary>
+    /// アニム消去時のエフェクトのプレハブ
+    /// </summary>
+    [SerializeField]
+    private GameObject _padParticle;
+
+    /// <summary>
+    /// BGM用AudioSource
+    /// </summary>
+    [SerializeField]
+    private AudioSource _audioSourceBGM;
+
+    /// <summary>
+    /// SE用AudioSource
+    /// </summary>
+    [SerializeField]
+    private AudioSource _audioSourceSE;
+
+    /// <summary>
+    /// アニム消去時のSE
+    /// </summary>
+    [SerializeField]
+    private AudioClip _padSE;
 
     // Start is called before the first frame update
     void Start()
     {
-        _score = 0;
         _dropCnt = 0;
         _anims = new List<GameObject>();
         _rayCast = GameObject.Find("RayCast");
+
         sceneSteps = SceneSteps.Start;
+        score = 0;
     }
 
     // Update is called once per frame
@@ -60,7 +117,7 @@ public class GameDirector : MonoBehaviour
 
         // Next入れ替え
         else if(sceneSteps == SceneSteps.NextSwap){
-            GameObject next = GameObject.Find("Next");
+            GameObject next = GameObject.Find("NextDirector");
             NextController nextController = next.GetComponent<NextController>();
 
             // ネクストを取得
@@ -139,16 +196,21 @@ public class GameDirector : MonoBehaviour
         AnimsCollision();
     }
 
+    /// <summary>
+    /// 接触判定
+    /// </summary>
     public void AnimsCollision(){
         bool isCollision = false;
         GameObject source = null;
         GameObject target = null;
 
+        // 全アニムを検索
         foreach(var anim in _anims){
+            // 衝突先を保存していれば、衝突先を調べる
             if(anim.GetComponent<AnimController>().TryGetCollision(out target)){
+                // 衝突先が自分と衝突して入れば衝突判定
                 if(target.GetComponent<AnimController>().TryGetCollision(out source)){
                     if(source == anim){
-                        Debug.Log("destory");
                         isCollision = true;
                         break;
                     }
@@ -156,10 +218,13 @@ public class GameDirector : MonoBehaviour
             }
         }
 
+        // 接触が認められた場合
         if(isCollision){
             // 進化アニムを取得
             GameObject composedPref;
-            if(GameObject.Find("Next").GetComponent<NextController>().TryGetNextAnim(source.tag, out composedPref)){
+
+            // 進化後があれば合成アニムを生成
+            if(GameObject.Find("AnimManager").GetComponent<AnimManager>().TryMakeConposedAnim(source, out composedPref)){
                 GameObject composedAnim = Instantiate(composedPref);
                 composedAnim.transform.position = (source.transform.position + target.transform.position) / 2;
                 composedAnim.GetComponent<Rigidbody2D>().simulated = true;
@@ -169,6 +234,19 @@ public class GameDirector : MonoBehaviour
                 // アニムリストに追加
                 _anims.Add(composedAnim);
             }
+
+            // スコアアップ
+            score += GameObject.Find("AnimManager").GetComponent<AnimManager>().GetAnimScore(source);
+
+            // スコア描画
+            GameObject.Find("ScoreValue").GetComponent<TextMeshProUGUI>().SetText(score.ToString());
+
+            // エフェクトを表示
+            GameObject padPartical = Instantiate(_padParticle);
+            padPartical.transform.position = (source.transform.position + target.transform.position) / 2;
+
+            // 効果音を鳴らす
+            _audioSourceSE.PlayOneShot(_padSE);
 
             // 接触アニムを削除
             _anims.Remove(source);

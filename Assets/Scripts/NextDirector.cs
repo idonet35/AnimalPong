@@ -1,18 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class NextController : MonoBehaviour
 {
     // 各要素の重みリスト
     [SerializeField]
     private float[] _weights;
-
-    [SerializeField]
-    private GameObject[] _anims;
-
-    [SerializeField]
-    private GameObject _nextAnim;
 
     private GameObject selectedAnim;
     
@@ -41,28 +36,22 @@ public class NextController : MonoBehaviour
     }
 
     public GameObject GetNextAnim(){
+        // Nextに選択されているプレハブを返す
         return selectedAnim;
     }
 
     public int NextGenerate(){
+        // Next生成
         int sel = Choose();
 
-        selectedAnim = _anims[sel];
-        _nextAnim.GetComponent<SpriteRenderer>().sprite = selectedAnim.GetComponent<SpriteRenderer>().sprite;
+        // Nextのプレハブを取得
+        selectedAnim = GameObject.Find("AnimManager").GetComponent<AnimManager>().GetAnimFromNo(sel);
+
+        // Nextのイメージ変更
+        GameObject obj = GameObject.Find("NextImage");
+        var compo = obj.GetComponent<Image>();
+        compo.sprite = selectedAnim.GetComponent<SpriteRenderer>().sprite;
         return sel;
-    }
-
-    public bool TryGetNextAnim(string tag, out GameObject nextAnim){
-        nextAnim = null;
-
-        for(int i = 0; i < _anims.Length - 1; i++){
-            if(_anims[i].tag == tag){
-                nextAnim = _anims[i + 1];
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private int Choose()
@@ -87,11 +76,4 @@ public class NextController : MonoBehaviour
         // 乱数値が重みの総和以上なら末尾要素とする
         return _weights.Length - 1;
     }
-}
-
-public class NextFaceWeight
-{
-    public GameObject animPrefab;
-
-    public float weight;
 }
