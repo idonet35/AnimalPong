@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 public class GameDirector : MonoBehaviour
@@ -70,6 +71,11 @@ public class GameDirector : MonoBehaviour
     /// ドロップする高さ
     /// </summary>
     private float _dropY = 3f;
+
+    /// <summary>
+    /// ゲームオーバーになる高さ
+    /// </summary>
+    private float _overY = 2f;
 
     /// <summary>
     /// アニム消去時のエフェクトのプレハブ
@@ -169,8 +175,8 @@ public class GameDirector : MonoBehaviour
                 float xSize = _dropAnim.transform.lossyScale.x / 2f;
 
                 // 移動範囲の制限
-                if(xPos <= -1.95f + xSize) xPos = -1.95f + xSize;
-                if(xPos >= 1.95f - xSize) xPos = 1.95f - xSize;
+                if(xPos <= -1.95f + xSize) xPos = -1.90f + xSize;
+                if(xPos >= 1.95f - xSize) xPos = 1.90f - xSize;
 
                 // 落下位置の移動
                 _dropAnim.transform.position = new Vector3(xPos, _dropY, 0);
@@ -195,8 +201,22 @@ public class GameDirector : MonoBehaviour
             }
         }
 
+        else if(sceneSteps == SceneSteps.GameOver){
+            foreach(var anim in _anims){
+                anim.GetComponent<Rigidbody2D>().simulated = false;
+            }
+        }
+
         // 接触判定
-        AnimsCollision();
+        if(sceneSteps != SceneSteps.Start && sceneSteps != SceneSteps.GameOver){
+            AnimsCollision();
+        }
+    }
+
+    private IEnumerator GameOverProc(){
+        yield return new WaitForSeconds(5);
+
+        SceneManager.LoadScene("GameScene");
     }
 
     /// <summary>
@@ -217,6 +237,16 @@ public class GameDirector : MonoBehaviour
                         isCollision = true;
                         break;
                     }
+                }
+            }
+
+            // ゲームオーバー判定
+            if(anim.GetComponent<AnimController>().IsCollisioned()){
+                if(anim.transform.position.y > _overY){
+                    sceneSteps = SceneSteps.GameOver;
+                    GameObject.Find("GameOver").GetComponent<TextMeshProUGUI>().enabled = true;
+
+                    StartCoroutine(GameOverProc());
                 }
             }
         }

@@ -8,13 +8,16 @@ public class AnimController : MonoBehaviour
 
     private float _zoom;
 
-    public GameObject _collisionObject;
+    private bool _isCollisioned;
+
+    private GameObject _collisionObject;
     
     // Start is called before the first frame update
     void Start()
     {
         _originalScale = transform.localScale.x;
         _zoom = 0f;
+        _isCollisioned = false;
         _collisionObject = null;
         transform.localScale = new Vector3(0, 0, 1f);
     }
@@ -34,6 +37,7 @@ public class AnimController : MonoBehaviour
         if(gameObject.tag == collision.gameObject.tag){
             _collisionObject = collision.gameObject;
         }
+        _isCollisioned = true;
     }
 
     public bool TryGetCollision(out GameObject collisionObject){
@@ -48,5 +52,9 @@ public class AnimController : MonoBehaviour
 
     public bool IsEnable(){
         return true ? _zoom == 1f : false;
+    }
+
+    public bool IsCollisioned(){
+        return _isCollisioned;
     }
 }
